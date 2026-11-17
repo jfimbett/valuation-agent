@@ -42,6 +42,8 @@ def start(ticker: str, date: str | None = None) -> Path:
     if d.exists():
         raise SystemExit(f"run already exists: {d}")
     d.mkdir(parents=True)
+    for f in RUNS.glob(".lookups-*.json"):   # lookup counters used by .claude/hooks/guard.py restart with each run
+        f.unlink()
     _save(d, {"ticker": ticker.upper(), "date": date, "done": [], "approved": [], "blocked": None})
     log(d, event="start", ticker=ticker.upper(), date=date)
     return d

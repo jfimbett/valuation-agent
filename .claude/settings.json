@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pipeline*)",
+      "Bash(python -m pytest*)",
+      "Read(runs/**)",
+      "Read(evidence/**)",
+      "Read(settings.yaml)",
+      "Write(runs/**)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(**/.env)",
+      "Bash(curl*)",
+      "Bash(wget*)",
+      "Bash(git push*)",
+      "Edit(valuation/**)",
+      "Edit(pipeline/**)",
+      "Edit(settings.yaml)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Read|Grep|Glob|WebFetch|WebSearch",
+        "hooks": [
+          { "type": "command", "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py\"" }
+        ]
+      }
+    ]
+  }
+}
