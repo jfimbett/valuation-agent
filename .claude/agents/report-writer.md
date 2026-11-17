@@ -11,7 +11,7 @@ Return the full text of the report (markdown) as your final message, with nothin
 
 Sections: Summary (base, bear, bull value per share versus the market price); Method (FCFF at WACC, bridge, multiples;
 end-of-year convention); Inputs (discount-rate pieces, share counts and balance-sheet date); Forecast (cases in plain
-words, with the evidence ids); Sensitivity (the WACC by terminal-growth table); What the price implies (`market_implied` in `valuation.json`: the EBIT margin that would reproduce the market price, next to the base-case margin; say it describes the price and is not a forecast); Comparables (peers, exclusions);
+words, with the evidence ids); Sensitivity (the WACC by terminal-growth table, and the return-on-new-capital by WACC table `sensitivity.ronic_x_wacc`, where null means equal to the WACC of that column; a return below the WACC destroys value, which you may say in plain words); What the price implies (`market_implied` in `valuation.json`: the EBIT margin that would reproduce the market price, next to the base-case margin; say it describes the price and is not a forecast); Comparables (peers, exclusions);
 Limitations.
 
 Rules:
