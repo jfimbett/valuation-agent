@@ -23,6 +23,7 @@ TAGS = {
         "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"],
     "income_tax": ["IncomeTaxExpenseBenefit"],
     "interest_expense": ["InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt"],
+    "operating_cash_flow": ["NetCashProvidedByUsedInOperatingActivities"],
 }
 INSTANT_TAGS = {
     "cash": ["CashAndCashEquivalentsAtCarryingValue"],

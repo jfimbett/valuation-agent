@@ -146,8 +146,19 @@ def assumptions_tax(assumptions: dict) -> float:
     return ts[0]
 
 
+def tests_pass() -> tuple[bool, str]:
+    """Step 6 runs only if the valuation tests pass (settings.yaml limits: value: tests must pass)."""
+    r = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests/test_valuation.py", "tests/test_checks_value.py"],
+                       cwd=ROOT, capture_output=True, text=True)
+    return r.returncode == 0, (r.stdout + r.stderr).strip().splitlines()[-1] if (r.stdout + r.stderr).strip() else ""
+
+
 def main(ticker: str, as_of: str) -> None:
     d = run.run_dir(ticker, as_of)
+    ok, summary = tests_pass()
+    if not ok:
+        run.block(d, f"valuation tests fail ({summary}): fix the code, then unblock and rerun step 6 only")
+        raise SystemExit(f"blocked: valuation tests fail: {summary}")
     rd = lambda n: json.loads((d / n).read_text())
     c = rd("checks.json")
     if c["blocks"]:

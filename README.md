@@ -23,6 +23,11 @@ In Claude Code: `/value-company KO` (or `/value-company KO 2026-11-17`). The com
 and the five peers; you may drop peers) and after the report (publish or not). Your own Claude Code usage pays for the
 AI steps. Companies that are banks, insurers or REITs are refused.
 
+## When a number needs words
+
+Some causes are only in the filing text (for example why operating cash flow fell). Fetch the filing so a subagent can
+search it: `python -m pipeline.filing_text KO 2026-11-17 10-K 2024-12-31`. It is saved under `evidence/` with its hash.
+
 ## What is where
 
 | Folder | Content |

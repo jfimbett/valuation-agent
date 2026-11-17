@@ -32,7 +32,7 @@ def build(facts: dict) -> dict:
         if i:
             row["revenue_growth"] = rev[y] / rev[years[i - 1]] - 1
         rows.append(row)
-    for name in ("revenue", "ebit", "capex", "da", "income_tax"):
+    for name in ("revenue", "ebit", "capex", "da", "income_tax", "operating_cash_flow"):
         s = _series(facts, name)
         ys = sorted(s)
         for a, b in zip(ys, ys[1:]):
