@@ -34,7 +34,9 @@ Arguments: `$ARGUMENTS` = ticker, then an optional valuation date (default today
 - **review**: run `python -m pipeline.checks <TICKER> <DATE>`. Call `assumption-reviewer`; it returns a JSON list of
   verdicts as its final message. Save that list unchanged to `runs/<TICKER>/<DATE>/review-verdicts.json`, then run
   `python -m pipeline.checks <TICKER> <DATE> --verdicts review-verdicts.json`, then `done review`.
-  If there are blocks, one revision round is allowed: call `forecaster` once more with the blocks, then repeat the review.
+  If `checks.json` shows "the reviewer gave no verdict" for some targets, call `assumption-reviewer` once more for
+  only those targets and append its verdicts to the list in `review-verdicts.json`, then re-run the checks.
+  If there are other blocks, one revision round is allowed: call `forecaster` once more with the blocks, then repeat the review.
   A second failure: `block` the run.
 - **report**: call `report-writer`; save its text to `runs/<TICKER>/<DATE>/report.draft.md`, run `accept <TICKER> <DATE> report`, then `python -m pipeline.report_check <TICKER> <DATE>`.
   If it fails, send the unmatched numbers back to `report-writer` once (save the new text the same way); a second failure: `block` the run. Then `done report`.

@@ -91,6 +91,9 @@ def approve(d: Path, step: str, by: str, drop: list[str] | None = None) -> None:
     if step not in s["done"]:
         raise SystemExit(f"cannot approve '{step}': not done")
     if step == "review":
+        blocks = json.loads((d / "checks.json").read_text())["blocks"]
+        if blocks:
+            raise SystemExit(f"cannot approve: checks.json has {blocks} blocking item(s); fix them first")
         a = json.loads((d / "assumptions.json").read_text())
         a["status"] = "approved"
         (d / "assumptions.json").write_text(json.dumps(a, indent=2))

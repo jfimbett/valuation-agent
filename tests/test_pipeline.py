@@ -30,6 +30,11 @@ def test_gates_stop_for_the_user_and_blocks_win(d):
                       ("forecast", "assumptions.json"), ("review", "checks.json")]:
         (d / art).write_text("{}"); run.mark_done(d, step)
     assert run.next_step(d)["action"] == "ask the user"
+    (d / "assumptions.json").write_text('{"status": "proposed", "items": []}')
+    (d / "checks.json").write_text('{"blocks": 1, "checks": []}')
+    with pytest.raises(SystemExit):
+        run.approve(d, "review", by="tester")          # a block cannot be approved
+    (d / "checks.json").write_text('{"blocks": 0, "checks": []}')
     run.approve(d, "review", by="tester")
     assert run.next_step(d)["step"] == "value"
     run.block(d, "share count missing")
