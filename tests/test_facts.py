@@ -63,3 +63,27 @@ def test_latest_instant_respects_date_and_dei_shares():
 
 def test_missing_tag_is_none():
     assert latest_instant({"facts": {}}, ["Nope"], "2026-01-01") is None
+
+
+def test_freshest_tag_wins_over_a_stale_first_tag():
+    data = {"facts": {"us-gaap": {
+        "OldTag": {"units": {"USD": [row("2018-01-01", "2018-12-31", 10e6, "10-K", "2019-02-01")]}},
+        "NewTag": {"units": {"USD": [row("2025-01-01", "2025-12-31", 20e6, "10-K", "2026-02-01")]}}}}}
+    got = annual(data, ["OldTag", "NewTag"], "2026-06-30")
+    assert got[0]["end"] == "2025-12-31" and got[0]["value"] == pytest.approx(20)
+
+
+def test_q4_from_fy_minus_three_single_quarters_when_no_nine_month_total():
+    rows = [row("2025-02-01", "2025-04-30", 100e6, "10-Q", "2025-05-20", "q1"),
+            row("2025-05-01", "2025-07-31", 110e6, "10-Q", "2025-08-20", "q2"),
+            row("2025-08-01", "2025-10-31", 120e6, "10-Q", "2025-11-20", "q3"),
+            row("2025-02-01", "2026-01-31", 450e6, "10-K", "2026-03-20", "fy")]
+    qs = quarters(cf("NetIncomeLoss", rows), ["NetIncomeLoss"], "2026-06-30")
+    assert qs[0]["end"] == "2026-01-31" and qs[0]["value"] == pytest.approx(120) and qs[0]["kind"] == "derived"
+
+
+def test_proxy_statement_repeats_are_ignored():
+    rows = [row("2025-01-01", "2025-12-31", 100e6, "10-K", "2026-02-20", "k"),
+            row("2025-01-01", "2025-12-31", 100e6, "DEF 14A", "2026-04-20", "proxy")]
+    got = annual(cf("Revenues", rows), ["Revenues"], "2026-06-30")
+    assert got[0]["accession"] == "k"

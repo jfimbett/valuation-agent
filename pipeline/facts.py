@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from datetime import date
 
+FORMS = {"10-K", "10-K/A", "10-KT", "10-Q", "10-Q/A"}
+
 TAGS = {
     "revenue": ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet"],
     "ebit": ["OperatingIncomeLoss"],
@@ -56,6 +58,8 @@ def raw_items(companyfacts: dict, tag: str, as_of: str, taxonomy: str = "us-gaap
         for r in rows:
             if r.get("filed", "9999") > as_of:  # look-ahead filter
                 continue
+            if r.get("form") not in FORMS:      # proxy statements and others repeat values; only 10-K/10-Q count
+                continue
             out.append({"tag": f"{taxonomy}:{tag}", "unit": unit, "value": r["val"] / _scale(unit),
                         "start": r.get("start"), "end": r["end"], "form": r.get("form"), "fp": r.get("fp"),
                         "filed": r["filed"], "accession": r.get("accn")})
@@ -71,18 +75,27 @@ def _latest_per_period(items: list[dict]) -> list[dict]:
     return list(best.values())
 
 
+def _freshest(candidates: list[list[dict]], key: str = "end") -> list[dict]:
+    """Of the tags that have data, use the one with the newest period (a company may stop using an old tag).
+    Ties go to the tag listed first."""
+    candidates = [c for c in candidates if c]
+    return max(candidates, key=lambda c: max(i[key] for i in c)) if candidates else []
+
+
 def annual(companyfacts: dict, tags: list[str], as_of: str) -> list[dict]:
-    """Fiscal-year values from the first tag that has any, newest first."""
+    """Fiscal-year values from the tag with the newest data, newest first."""
+    per_tag = []
     for tag in tags:
         items = [i for i in raw_items(companyfacts, tag, as_of)
                  if i["start"] and 350 <= _days(i) <= 380 and i["form"] in ("10-K", "10-K/A")]
-        if items:
-            return sorted(_latest_per_period(items), key=lambda i: i["end"], reverse=True)
-    return []
+        per_tag.append(sorted(_latest_per_period(items), key=lambda i: i["end"], reverse=True))
+    best = _freshest(per_tag)
+    return best
 
 
 def quarters(companyfacts: dict, tags: list[str], as_of: str) -> list[dict]:
     """Single-quarter values, converting year-to-date figures. Newest first; kind is 'reported' or 'derived'."""
+    per_tag = []
     for tag in tags:
         items = [i for i in raw_items(companyfacts, tag, as_of) if i["start"]]
         if not items:
@@ -107,9 +120,16 @@ def quarters(companyfacts: dict, tags: list[str], as_of: str) -> list[dict]:
                     qs.setdefault(i["end"], {**i, "kind": "derived", "start": p["end"],
                                              "value": i["value"] - p["value"],
                                              "derived_from": [i["accession"], p["accession"]]})
+        for i in by:   # Q4 = FY - (Q1 + Q2 + Q3) when the filings give three single quarters but no nine-month total
+            if i["form"] in ("10-K", "10-K/A") and 350 <= _days(i) <= 380 and i["end"] not in qs:
+                inside = [q for q in qs.values() if q["start"] >= i["start"] and q["end"] < i["end"] and _days(q) <= 100]
+                if len(inside) == 3:
+                    qs[i["end"]] = {**i, "kind": "derived", "start": max(q["end"] for q in inside),
+                                    "value": i["value"] - sum(q["value"] for q in inside),
+                                    "derived_from": [i["accession"]] + [q["accession"] for q in inside]}
         if qs:
-            return sorted(qs.values(), key=lambda q: q["end"], reverse=True)
-    return []
+            per_tag.append(sorted(qs.values(), key=lambda q: q["end"], reverse=True))
+    return _freshest(per_tag)
 
 
 def ttm(qs: list[dict]) -> dict | None:

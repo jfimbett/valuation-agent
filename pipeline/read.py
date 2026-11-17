@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 from . import facts, run
@@ -33,6 +34,11 @@ def main(ticker: str, as_of: str) -> None:
         if not ann:
             out["missing"].append({"id": name, "reason": "no annual value found in XBRL", "blocks": []})
             continue
+        age = (date.fromisoformat(as_of) - date.fromisoformat(ann[0]["end"])).days
+        if age > 550:   # newest fiscal year is more than ~18 months old: the data is stale, not usable
+            out["missing"].append({"id": name, "reason": f"newest annual value ends {ann[0]['end']} ({age} days before the "
+                                   "valuation date); stale", "blocks": ["forecast"]})
+            continue
         out["annual"][name] = [{"id": f"{name}_{a['end']}", "kind": "reported", "value": a["value"],
                                 "period": {"start": a["start"], "end": a["end"]}, "source": _prov(a, cik)}
                                for a in ann[:6]]
@@ -49,7 +55,6 @@ def main(ticker: str, as_of: str) -> None:
     if ref is None:
         out["missing"].append({"id": "balance_sheet", "reason": "no cash value found", "blocks": ["bridge"]})
     else:
-        from datetime import date, timedelta
         floor = (date.fromisoformat(ref) - timedelta(days=MAX_AGE_DAYS)).isoformat()
         for name, tags in facts.INSTANT_TAGS.items():
             it = facts.latest_instant(cf, tags, as_of, not_before=floor)
