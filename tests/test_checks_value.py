@@ -100,3 +100,15 @@ def test_market_implied_margin_reproduces_the_price():
             i["value"] += mi["ebit_margin_shift"]
     again = value.compute(f, history(), e, shifted, None, SETTINGS)
     assert again["cases"]["base"]["per_share"] == pytest.approx(30.0, abs=0.01)
+
+
+def test_ronic_grid_first_row_is_the_base_grid_and_higher_ronic_raises_value():
+    r = value.compute(facts(), history(), evidence(), assumptions(), None, SETTINGS)
+    g2 = r["sensitivity"]["ronic_x_wacc"]
+    assert g2["ronics"][0] is None
+    assert g2["per_share"][0][2] == pytest.approx(r["cases"]["base"]["per_share"])
+    w = r["wacc"]["wacc"]
+    mid = [row[2] for rr, row in zip(g2["ronics"], g2["per_share"]) if rr is None or rr >= w]
+    assert mid == sorted(mid)                    # at or above the cost of capital, more return -> more value
+    below = [row[2] for rr, row in zip(g2["ronics"], g2["per_share"]) if rr is not None and rr < w]
+    assert all(b < g2["per_share"][0][2] for b in below)   # below the cost of capital, growth destroys value

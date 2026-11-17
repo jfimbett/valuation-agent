@@ -74,6 +74,21 @@ def compute(facts: dict, history: dict, evidence: dict, assumptions: dict, peers
     gs = [g + d for d in (-0.01, -0.005, 0, 0.005, 0.01)]
     sens = {"waccs": waccs, "gs": gs, "per_share": sensitivity_wacc_g(base_fc, waccs, gs, bridge.per_share, base_nopat, ronic)}
 
+    # Second grid: the terminal judgment that matters most. Rows: return on new capital (None = equal to the WACC of that
+    # column, i.e. growth adds no value); columns: WACC. Values per share, base case.
+    ronic_rows = [None] + [x for x in (0.08, 0.10, 0.12, 0.15) if x > g]
+    ronic_grid = []
+    for rr in ronic_rows:
+        row = []
+        for ww in waccs:
+            try:
+                row.append(None if ww <= g else bridge.per_share(enterprise_value(base_fc, ww, g, base_nopat, rr)["ev"]))
+            except ValuationError:
+                row.append(None)
+        ronic_grid.append(row)
+    sens["ronic_x_wacc"] = {"ronics": ronic_rows, "waccs": waccs, "per_share": ronic_grid,
+                            "note": "ronic null = equal to the WACC of the column (growth adds no value)"}
+
     out = {"valuation_date": facts["valuation_date"], "unit": "USD_m", "balance_date": facts["balance_date"],
            "wacc": {"wacc": w, "cost_equity": ke, "cost_debt": kd, "tax_rate": tax_wacc, "risk_free": rf, "beta": beta,
                     "erp": erp, "market_cap": market_cap, "debt": debt, "weights_equity": market_cap / (market_cap + debt)},
