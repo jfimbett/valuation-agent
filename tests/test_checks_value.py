@@ -72,3 +72,17 @@ def test_value_hand_check():
     assert r["wacc"]["wacc"] == pytest.approx(2000 / 2350 * 0.09 + 350 / 2350 * (20 / 350) * 0.8)
     assert r["sensitivity"]["per_share"][2][2] == pytest.approx(base["per_share"])
     assert r["comparables"] == {"blocked": "peer list not approved"}
+
+
+def test_terminal_growth_verdict_is_accepted_and_judgment_warnings_are_summarised():
+    a = assumptions()
+    for i in a["items"][:3]:
+        i["judgment"] = "year 3 onward: no data"
+    ids = [i["id"] for i in a["items"]]
+    verdicts = [{"target": t, "verdict": "supported", "pointer": "revenue_2025", "note": "ok"} for t in ids[3:]]
+    verdicts += [{"target": t, "verdict": "unsupported", "pointer": "check:review", "note": "no figure"} for t in ids[:3]]
+    verdicts.append({"target": "terminal_growth", "verdict": "supported", "pointer": "check:terminal", "note": "ok"})
+    merged = ck.merge_reviewer([], verdicts, a)
+    assert not [c for c in merged if c["severity"] == "block"]
+    warns = [c for c in merged if c["severity"] == "warn"]
+    assert len(warns) == 1 and warns[0]["target"] == "unsupported_judgments" and len(warns[0]["ids"]) == 3

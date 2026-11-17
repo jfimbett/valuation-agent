@@ -100,16 +100,29 @@ def check(facts: dict, history: dict, evidence: dict, assumptions: dict, setting
 def merge_reviewer(checks: list[dict], verdicts: list[dict], assumptions: dict) -> list[dict]:
     """Validate and add the reviewer subagent's verdicts. Contradicted -> block; unsupported -> warn if the
     assumption carries a judgment label, otherwise block. A target without a verdict is itself a block."""
-    known = {i["id"] for i in assumptions.get("items", [])}
+    known = {i["id"] for i in assumptions.get("items", [])} | {"terminal_growth"}
+    judgment = {i["id"] for i in assumptions.get("items", []) if i.get("judgment")}
+    judgment.add("terminal_growth")
     seen = set()
+    unsupported_judgments = []
     for v in verdicts:
         if v.get("verdict") not in VERDICTS or v.get("target") not in known or not v.get("pointer"):
             checks.append({"target": v.get("target", "?"), "verdict": "invalid", "pointer": "check:verdict-format",
                            "severity": "block", "note": "reviewer verdict malformed or points at an unknown assumption"})
             continue
         seen.add(v["target"])
+        if v["verdict"] == "unsupported" and v["target"] in judgment:
+            # a judgment call with no data behind it is expected for the later years: one summary warning, not 57
+            unsupported_judgments.append(v["target"])
+            checks.append({**v, "severity": "info"})
+            continue
         sev = {"supported": "pass", "contradicted": "block", "unsupported": "warn"}[v["verdict"]]
         checks.append({**v, "severity": sev})
+    if unsupported_judgments:
+        checks.append({"target": "unsupported_judgments", "verdict": "unsupported", "pointer": "check:review",
+                       "severity": "warn", "ids": sorted(unsupported_judgments),
+                       "note": f"{len(unsupported_judgments)} assumptions rest on stated judgment, not on data "
+                               "(the reviewer found no supporting figure); mostly later forecast years"})
     for k in sorted(known - seen):
         checks.append({"target": k, "verdict": "none", "pointer": "check:review", "severity": "block",
                        "note": "the reviewer gave no verdict for this assumption"})

@@ -11,6 +11,7 @@ import re
 
 from . import sec
 
+MAX_ABS_GROWTH = 0.5   # Yahoo revenueGrowth is the latest quarter against a year earlier; beyond 50% it is usually M&A
 DEFAULT_WEIGHTS = {"size": 1.0, "growth": 1.0, "margin": 1.0, "leverage": 1.0}   # open decision: equal weights
 
 
@@ -74,6 +75,10 @@ def distance(a: dict, b: dict, w: dict = DEFAULT_WEIGHTS) -> float | None:
 def rank(target: dict, cands: list[dict], n: int = 5, w: dict = DEFAULT_WEIGHTS) -> dict:
     scored, dropped = [], []
     for c in cands:
+        g = c.get("revenue_growth")
+        if g is not None and abs(g) > MAX_ABS_GROWTH:
+            dropped.append({"ticker": c["ticker"], "reason": f"growth outlier ({g:.0%}), likely an acquisition or a base effect"})
+            continue
         dist = distance(target, c, w)
         (scored if dist is not None else dropped).append((dist, c) if dist is not None else
                                                           {"ticker": c["ticker"], "reason": "missing metric"})

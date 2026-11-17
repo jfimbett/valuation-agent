@@ -6,7 +6,7 @@ cases: [base, bear, bull]
 discount_rate:
   risk_free_series: DGS10        # FRED 10-year Treasury
   beta: { source: yfinance, years: 5, frequency: monthly, benchmark: "^GSPC" }
-  risk_free_rate_manual: null     # e.g. 0.042; used only when there is no FRED_API_KEY (a warning is shown)
+  risk_free_rate_manual: 0.042     # e.g. 0.042; used only when there is no FRED_API_KEY (a warning is shown)
   equity_risk_premium: 0.05
   cost_of_debt: interest_expense_over_debt
 terminal_growth: { default: 0.025, max: risk_free_rate }   # proposed; open decision 1

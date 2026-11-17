@@ -19,3 +19,10 @@ def test_closest_peer_ranks_first_and_missing_metrics_are_dropped():
 def test_distance_is_zero_for_identical():
     a = m("A", 1000, 0.05, 0.2, 0.3)
     assert distance(a, a) == pytest.approx(0)
+
+
+def test_growth_outliers_are_dropped_with_a_reason():
+    target = m("T", 1000, 0.05, 0.20, 0.3)
+    r = rank(target, [m("deal", 1000, 0.706, 0.20, 0.3), m("ok", 900, 0.06, 0.2, 0.3)], n=5)
+    assert [p["ticker"] for p in r["selected"]] == ["ok"]
+    assert "growth outlier" in r["dropped"][0]["reason"]
