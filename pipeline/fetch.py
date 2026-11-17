@@ -15,7 +15,7 @@ from pathlib import Path
 import requests
 import yaml
 
-from . import run, sec
+from . import peers, run, sec
 from .env import load_env
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -91,6 +91,8 @@ def main(ticker: str, as_of: str) -> None:
            "sic_description": sub.get("sicDescription"), "valuation_date": as_of, "files": files,
            "refused": refusal(sic), "risk_free": risk_free(as_of), "market": market(ticker.upper(), as_of)}
     (d / "evidence.json").write_text(json.dumps(out, indent=2))
+    if not out["refused"]:
+        (d / "peers.json").write_text(json.dumps(peers.propose(ticker.upper(), sic, SETTINGS["peers"]["count"]), indent=2))
     run.log(d, event="fetch", files=[f["sha256"][:12] for f in files], refused=out["refused"])
     if out["refused"]:
         run.block(d, out["refused"])

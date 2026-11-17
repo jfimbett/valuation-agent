@@ -75,13 +75,27 @@ def mark_done(d: Path, step: str) -> None:
     log(d, event="done", step=step)
 
 
-def approve(d: Path, step: str, by: str) -> None:
+def approve(d: Path, step: str, by: str, drop: list[str] | None = None) -> None:
+    """A person approves a step. At the review gate this also approves the assumptions and the peer list
+    (the user may drop peers). Only this command sets those flags."""
     s = _load(d)
     if step not in s["done"]:
         raise SystemExit(f"cannot approve '{step}': not done")
+    if step == "review":
+        a = json.loads((d / "assumptions.json").read_text())
+        a["status"] = "approved"
+        (d / "assumptions.json").write_text(json.dumps(a, indent=2))
+        if (d / "peers.json").exists():
+            p = json.loads((d / "peers.json").read_text())
+            if p.get("selected"):
+                p["selected"] = [x for x in p["selected"] if x["ticker"] not in (drop or [])]
+                p["dropped_by_user"] = drop or []
+                p["approved"] = True
+                p["approved_by"] = by
+                (d / "peers.json").write_text(json.dumps(p, indent=2))
     s["approved"].append(step)
     _save(d, s)
-    log(d, event="approved", step=step, by=by)
+    log(d, event="approved", step=step, by=by, dropped_peers=drop or [])
 
 
 def block(d: Path, reason: str) -> None:
