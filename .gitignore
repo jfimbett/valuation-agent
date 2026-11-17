@@ -1,0 +1,6 @@
+.env
+runs/
+evidence/*
+!evidence/.gitkeep
+__pycache__/
+.pytest_cache/

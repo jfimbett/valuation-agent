@@ -1,0 +1,5 @@
+pytest>=8
+pyyaml>=6
+jsonschema>=4
+requests>=2.32
+yfinance==1.4.1

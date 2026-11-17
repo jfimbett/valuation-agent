@@ -1,0 +1,20 @@
+# All tunable choices live here. Values from the course decisions of 2026-11-13; "proposed" ones await instructor sign-off.
+valuation_date: today
+companies: { filers: [10-K, 10-Q], refuse: [bank, insurer, reit] }
+horizon_years: 5
+cases: [base, bear, bull]
+discount_rate:
+  risk_free_series: DGS10        # FRED 10-year Treasury
+  beta: { source: yfinance, years: 5, frequency: monthly, benchmark: "^GSPC" }
+  equity_risk_premium: 0.05
+  cost_of_debt: interest_expense_over_debt
+terminal_growth: { default: 0.025, max: risk_free_rate }   # proposed; open decision 1
+peers: { count: 5, selection: [sic, size, growth, margin], approval: user }
+materiality: { block_above: 0.05, warn_above: 0.01 }       # share of value per share
+sec: { max_requests_per_second: 10, retries: 3 }
+limits:                                                    # enforced by pipeline/limits.py and the hooks
+  fetch: { retries: 3 }
+  read: { retries: 1 }
+  forecast: { searches: 6, revisions: 2, turns: 12 }
+  review: { searches: 4, rounds: 2 }
+  report: { drafts: 1, corrections: 1 }
