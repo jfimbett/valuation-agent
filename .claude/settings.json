@@ -6,7 +6,7 @@
       "Read(runs/**)",
       "Read(evidence/**)",
       "Read(settings.yaml)",
-      "Write(runs/**)"
+      "Edit(runs/**)"
     ],
     "deny": [
       "Read(.env)",
