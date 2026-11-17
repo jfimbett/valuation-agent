@@ -86,3 +86,17 @@ def test_terminal_growth_verdict_is_accepted_and_judgment_warnings_are_summarise
     assert not [c for c in merged if c["severity"] == "block"]
     warns = [c for c in merged if c["severity"] == "warn"]
     assert len(warns) == 1 and warns[0]["target"] == "unsupported_judgments" and len(warns[0]["ids"]) == 3
+
+
+def test_market_implied_margin_reproduces_the_price():
+    f, e = facts(), evidence()
+    e["market"]["price"] = 30.0
+    r = value.compute(f, history(), e, assumptions(), None, SETTINGS)
+    mi = r["market_implied"]
+    assert mi["year5_ebit_margin"] > mi["base_year5_ebit_margin"]          # the price is above the base value
+    shifted = assumptions()
+    for i in shifted["items"]:
+        if i["scenario"] == "base" and i["driver"] == "ebit_margin":
+            i["value"] += mi["ebit_margin_shift"]
+    again = value.compute(f, history(), e, shifted, None, SETTINGS)
+    assert again["cases"]["base"]["per_share"] == pytest.approx(30.0, abs=0.01)

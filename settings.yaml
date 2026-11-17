@@ -9,6 +9,7 @@ discount_rate:
   risk_free_rate_manual: 0.042     # e.g. 0.042; used only when there is no FRED_API_KEY (a warning is shown)
   equity_risk_premium: 0.05
   cost_of_debt: interest_expense_over_debt
+terminal_return_on_new_capital: wacc    # RONIC in the terminal year: 'wacc' (growth adds no value) or a number such as 0.10
 terminal_growth: { default: 0.025, max: risk_free_rate }   # proposed; open decision 1
 peers: { count: 5, selection: [sic, size, growth, margin], approval: user }
 materiality: { block_above: 0.05, warn_above: 0.01 }       # share of value per share

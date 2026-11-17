@@ -42,7 +42,9 @@ AI steps. Companies that are banks, insurers or REITs are refused.
 CAPM with the 10-year Treasury, a 5-year monthly Yahoo beta against the S&P 500 and a 5.0% equity risk premium; cost of
 debt = interest expense / debt; five explicit years plus a terminal value; base, bear and bull; peers by industry code,
 size, growth, margin and leverage (the user approves them). Terminal growth defaults to 2.5% (proposed), capped at the
-risk-free rate and at 4%.
+risk-free rate and at 4%. The terminal year is normalised: reinvestment = g / RONIC, with the return on new capital set to the
+WACC by default (`terminal_return_on_new_capital` in `settings.yaml`), so growth adds no value and year-5 capex above D&A is not
+carried forever. The report also shows the EBIT margin that would reproduce the market price (reverse DCF).
 
 ## Data and terms
 

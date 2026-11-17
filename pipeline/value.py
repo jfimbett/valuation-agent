@@ -60,29 +60,52 @@ def compute(facts: dict, history: dict, evidence: dict, assumptions: dict, peers
                     equity_method_investments=_v(facts, "balance", "equity_method_investments"),
                     as_of=facts["balance_date"], diluted_shares=sh)
 
+    ronic_setting = settings.get("terminal_return_on_new_capital", "wacc")
+    ronic = None if ronic_setting == "wacc" else float(ronic_setting)
     cases = {}
     for s in ck.SCENARIOS:
         rows = project_fcff(base_rev, nwc0, drivers_for(assumptions, s))
         fc = [r["fcff"] for r in rows]
-        e = enterprise_value(fc, w, g)
-        cases[s] = {"fcff": fc, **e, "equity_value": bridge.equity_value(e["ev"]), "per_share": bridge.per_share(e["ev"])}
+        e = enterprise_value(fc, w, g, rows[-1]["nopat"], ronic)
+        cases[s] = {"fcff": fc, "nopat_year5": rows[-1]["nopat"], **e, "equity_value": bridge.equity_value(e["ev"]), "per_share": bridge.per_share(e["ev"])}
 
-    base_fc = cases["base"]["fcff"]
+    base_fc, base_nopat = cases["base"]["fcff"], cases["base"]["nopat_year5"]
     waccs = [w + d for d in (-0.01, -0.005, 0, 0.005, 0.01)]
     gs = [g + d for d in (-0.01, -0.005, 0, 0.005, 0.01)]
-    sens = {"waccs": waccs, "gs": gs, "per_share": sensitivity_wacc_g(base_fc, waccs, gs, bridge.per_share)}
+    sens = {"waccs": waccs, "gs": gs, "per_share": sensitivity_wacc_g(base_fc, waccs, gs, bridge.per_share, base_nopat, ronic)}
 
     out = {"valuation_date": facts["valuation_date"], "unit": "USD_m", "balance_date": facts["balance_date"],
            "wacc": {"wacc": w, "cost_equity": ke, "cost_debt": kd, "tax_rate": tax_wacc, "risk_free": rf, "beta": beta,
                     "erp": erp, "market_cap": market_cap, "debt": debt, "weights_equity": market_cap / (market_cap + debt)},
-           "terminal_growth": g, "base_revenue": base_rev, "base_operating_nwc": nwc0, "cases": cases,
+           "terminal_growth": g, "terminal_return_on_new_capital": ronic_setting, "base_revenue": base_rev, "base_operating_nwc": nwc0, "cases": cases,
            "bridge": {"debt": debt, "cash": cash, "net_debt": bridge.net_debt(),
                       "noncontrolling_interests": bridge.noncontrolling_interests,
                       "equity_method_investments": bridge.equity_method_investments,
                       "diluted_shares_weighted": sh, "shares_cover_page": cover},
            "sensitivity": sens, "market_price": price,
-           "convention": "end-of-year cash flows from the valuation date; FCFF = EBIT(1-t) + D&A - capex - change in operating NWC",
+           "convention": "end-of-year cash flows from the valuation date; FCFF = EBIT(1-t) + D&A - capex - change in operating NWC; "
+                         "terminal FCFF = NOPAT x (1+g) x (1 - g / RONIC)",
            "notes": []}
+    # What the market price implies (reverse DCF): the uniform shift in the base-case EBIT margin that reproduces the
+    # price. This describes the price; it is never used to set the assumptions.
+    base_d = drivers_for(assumptions, "base")
+
+    def base_value(shift: float) -> float:
+        dr = [YearDrivers(x.revenue_growth, x.ebit_margin + shift, x.tax_rate, x.da_pct_revenue, x.capex_pct_revenue,
+                          x.nwc_pct_revenue) for x in base_d]
+        rows = project_fcff(base_rev, nwc0, dr)
+        return bridge.per_share(enterprise_value([r["fcff"] for r in rows], w, g, rows[-1]["nopat"], ronic)["ev"])
+
+    lo, hi = -0.5, 0.5
+    if base_value(lo) < price < base_value(hi):
+        for _ in range(60):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if base_value(mid) < price else (lo, mid)
+        out["market_implied"] = {"ebit_margin_shift": mid, "year5_ebit_margin": base_d[-1].ebit_margin + mid,
+                                 "base_year5_ebit_margin": base_d[-1].ebit_margin,
+                                 "note": "uniform change in the base-case EBIT margin that reproduces the market price"}
+    else:
+        out["market_implied"] = {"note": "no margin within +/-50 points reproduces the market price"}
     ts = cases["base"]["terminal_share"]
     if ts > 0.75:
         out["notes"].append(f"terminal value is {ts:.0%} of base-case enterprise value: disclose")

@@ -75,3 +75,14 @@ def test_sensitivity_grid_blanks_invalid_cells_and_centre_matches():
     assert grid[0][1] is None                      # WACC 3% <= g 3%
     assert grid[1][0] == pytest.approx(1000.0)     # WACC 10%, g 0 equals the hand-checked case
     assert not any(isinstance(c, float) and math.isnan(c) for row in grid for c in row)
+
+
+def test_normalised_terminal_value_by_hand():
+    # NOPAT 100, g 2%, WACC 8%, RONIC = WACC: reinvestment 0.02/0.08 = 25%; FCFF = 100*1.02*0.75 = 76.5; TV = 76.5/0.06
+    assert terminal_value(999, 0.08, 0.02, nopat_last=100) == pytest.approx(1275.0)
+    # a different return on new capital: RONIC 10% -> reinvestment 20% -> 100*1.02*0.8/0.06
+    assert terminal_value(999, 0.08, 0.02, nopat_last=100, ronic=0.10) == pytest.approx(1360.0)
+    # with no growth the normalised and the plain formulas agree
+    assert terminal_value(100, 0.10, 0.0, nopat_last=100) == pytest.approx(terminal_value(100, 0.10, 0.0))
+    with pytest.raises(ValuationError):
+        terminal_value(100, 0.08, 0.05, nopat_last=100, ronic=0.04)
