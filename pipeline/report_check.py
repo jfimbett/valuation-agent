@@ -67,8 +67,10 @@ def check_report(report: str, artifacts: list[dict], checks: dict) -> dict:
 def main(ticker: str, as_of: str) -> None:
     d = run.run_dir(ticker, as_of)
     rd = lambda n: json.loads((d / n).read_text())
-    res = check_report((d / "report.md").read_text(), [rd("valuation.json"), rd("facts.json"), rd("history.json"),
-                                                       rd("evidence.json")], rd("checks.json"))
+    arts = [rd(n) for n in ("valuation.json", "facts.json", "history.json", "evidence.json", "assumptions.json")]
+    if (d / "peers.json").exists():
+        arts.append(rd("peers.json"))
+    res = check_report((d / "report.md").read_text(encoding="utf-8"), arts, rd("checks.json"))
     (d / "report-check.json").write_text(json.dumps(res, indent=2))
     run.log(d, event="report_check", ok=res["ok"], unmatched=len(res["unmatched_numbers"]))
     print(json.dumps(res))

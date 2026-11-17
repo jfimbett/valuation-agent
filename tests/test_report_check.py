@@ -21,3 +21,9 @@ def test_a_changed_number_is_rejected_and_warnings_must_appear():
     bad = check_report("Base value $99.10 per share.", ART, CHECKS)
     assert bad["unmatched_numbers"] == ["$99.10"] and bad["warnings_missing_from_report"] == ["terminal_growth"]
     assert not bad["ok"]
+
+
+def test_assumption_values_and_peers_are_valid_sources():
+    arts = [{"items": [{"value": 0.0213}, {"value": 0.048}]}, {"selected": [{"ticker": "COST", "operating_margin": 0.038}]}]
+    res = check_report("Capex 2.13% (0.0213), growth 4.8%, COST margin 3.8%.", arts, {"checks": []})
+    assert res["ok"], res

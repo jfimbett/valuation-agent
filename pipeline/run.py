@@ -110,6 +110,14 @@ def approve(d: Path, step: str, by: str, drop: list[str] | None = None) -> None:
     log(d, event="approved", step=step, by=by, dropped_peers=drop or [])
 
 
+def unblock(d: Path, why: str) -> None:
+    """Lift a block after the cause was fixed (logged). The checker, not the session, decides what runs next."""
+    s = _load(d)
+    s["blocked"] = None
+    _save(d, s)
+    log(d, event="unblocked", why=why)
+
+
 def block(d: Path, reason: str) -> None:
     s = _load(d)
     s["blocked"] = reason

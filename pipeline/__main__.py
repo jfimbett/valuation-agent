@@ -15,13 +15,14 @@ def main() -> None:
     q.add_argument("ticker")
     q.add_argument("date")
     q.add_argument("artifact")
-    for name in ("next", "done", "approve", "block"):
+    for name in ("next", "done", "approve", "block", "unblock"):
         q = sub.add_parser(name); q.add_argument("ticker"); q.add_argument("date")
         if name in ("done", "approve"): q.add_argument("step")
         if name == "approve":
             q.add_argument("--by", required=True)
             q.add_argument("--drop", default="")
-        if name == "block": q.add_argument("reason")
+        if name in ("block", "unblock"):
+            q.add_argument("reason")
     a = p.parse_args()
     if a.cmd == "start":
         print(run.start(a.ticker, a.date, a.fresh)); return
@@ -32,6 +33,7 @@ def main() -> None:
     elif a.cmd == "done": run.mark_done(d, a.step)
     elif a.cmd == "approve": run.approve(d, a.step, a.by, [x for x in a.drop.split(",") if x])
     elif a.cmd == "block": run.block(d, a.reason)
+    elif a.cmd == "unblock": run.unblock(d, a.reason)
 
 
 main()
