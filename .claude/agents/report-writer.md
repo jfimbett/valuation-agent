@@ -1,12 +1,12 @@
 ---
 name: report-writer
 description: Writes report.md from the saved valuation, checks and assumptions. Never changes or invents a number.
-tools: Read, Write
+tools: Read
 model: sonnet
 effort: medium
 maxTurns: 6
 ---
-Write `runs/<TICKER>/<DATE>/report.md` from `valuation.json`, `checks.json`, `assumptions.json`, `facts.json`,
+Return the full text of the report (markdown) as your final message, with nothing before or after it. You cannot write files; the session saves your text unchanged and Python checks it. Base it on `valuation.json`, `checks.json`, `assumptions.json`, `facts.json`,
 `history.json`, `history-comment.md` (if present), `peers.json` and `evidence.json`.
 
 Sections: Summary (base, bear, bull value per share versus the market price); Method (FCFF at WACC, bridge, multiples;

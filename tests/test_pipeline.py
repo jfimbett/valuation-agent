@@ -35,3 +35,27 @@ def test_gates_stop_for_the_user_and_blocks_win(d):
     run.block(d, "share count missing")
     assert run.next_step(d) == {"action": "blocked", "reason": "share count missing"}
     assert "approved" in (d / "run-log.jsonl").read_text()
+
+
+def test_start_refuses_existing_run_and_fresh_archives_it(d, tmp_path):
+    with pytest.raises(SystemExit):
+        run.start("ko", "2026-11-17")
+    (d / "marker.txt").write_text("old")
+    new = run.start("ko", "2026-11-17", fresh=True)
+    assert new == d and not (new / "marker.txt").exists()
+    assert (tmp_path / "_old" / "KO-2026-11-17-1" / "marker.txt").exists()
+
+
+def test_accept_validates_and_python_writes_the_artifact(d):
+    (d / "assumptions.draft.json").write_text('```json\n{"status": "approved", "terminal_growth": {"value": 0.02}, "items": [{"id": "a"}]}\n```')
+    run.accept(d, "assumptions")
+    a = json.loads((d / "assumptions.json").read_text())
+    assert a["status"] == "proposed"          # a subagent can never self-approve
+    (d / "assumptions.draft.json").write_text('{"items": []}')
+    with pytest.raises(SystemExit):
+        run.accept(d, "assumptions")
+    (d / "report.draft.md").write_text("# KO report\n")
+    run.accept(d, "report")
+    assert (d / "report.md").read_text() == "# KO report"
+    with pytest.raises(SystemExit):
+        run.accept(d, "valuation")            # only drafts of these three artifacts can be accepted

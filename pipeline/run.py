@@ -36,11 +36,18 @@ def log(d: Path, **event) -> None:
         f.write(json.dumps({"t": _now(), **event}) + "\n")
 
 
-def start(ticker: str, date: str | None = None) -> Path:
+def start(ticker: str, date: str | None = None, fresh: bool = False) -> Path:
+    """Create the run folder. If one exists, stop (so a finished or half-done run is never continued by accident);
+    with fresh=True the old folder is moved to runs/_old/ and a new run begins."""
     date = date or dt.date.today().isoformat()
     d = run_dir(ticker, date)
     if d.exists():
-        raise SystemExit(f"run already exists: {d}")
+        if not fresh:
+            raise SystemExit(f"run already exists: {d}. Continue it with `next`, or start over with `start --fresh`.")
+        old = RUNS / "_old"
+        old.mkdir(exist_ok=True)
+        n = len(list(old.glob(f"{ticker.upper()}-{date}-*"))) + 1
+        d.rename(old / f"{ticker.upper()}-{date}-{n}")
     d.mkdir(parents=True)
     for f in RUNS.glob(".lookups-*.json"):   # lookup counters used by .claude/hooks/guard.py restart with each run
         f.unlink()
@@ -105,3 +112,31 @@ def block(d: Path, reason: str) -> None:
     s["blocked"] = reason
     _save(d, s)
     log(d, event="blocked", reason=reason)
+
+
+DRAFTS = {"assumptions": ("assumptions.draft.json", "assumptions.json"),
+          "report": ("report.draft.md", "report.md"),
+          "history-comment": ("history-comment.draft.md", "history-comment.md")}
+
+
+def accept(d: Path, name: str) -> None:
+    """Subagents return text; the session saves it unchanged as a draft; this validates it and writes the real file.
+    So Python is the only writer of the saved artifacts."""
+    if name not in DRAFTS:
+        raise SystemExit(f"unknown artifact '{name}'; choose from {sorted(DRAFTS)}")
+    draft, final = DRAFTS[name]
+    if not (d / draft).exists():
+        raise SystemExit(f"{draft} not found in {d}")
+    text = (d / draft).read_text(encoding="utf-8").strip()
+    if text.startswith("```"):   # a code fence around JSON is tolerated; nothing else is changed
+        text = text.split(chr(10), 1)[1].rsplit("```", 1)[0].strip()
+    if name == "assumptions":
+        a = json.loads(text)
+        if not isinstance(a.get("items"), list) or not a["items"] or "terminal_growth" not in a:
+            raise SystemExit("assumptions need `items` and `terminal_growth`")
+        a["status"] = "proposed"   # only the gate approves
+        text = json.dumps(a, indent=2)
+    elif not text:
+        raise SystemExit(f"{draft} is empty")
+    (d / final).write_text(text, encoding="utf-8")
+    log(d, event="accepted", artifact=name, draft=draft)

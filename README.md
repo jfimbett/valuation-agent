@@ -29,7 +29,7 @@ AI steps. Companies that are banks, insurers or REITs are refused.
 |---|---|
 | `.claude/skills/value-company/` | the command: the fixed order of work |
 | `.claude/agents/` | subagents: forecaster, assumption-reviewer (Opus, high); reader, report-writer (Sonnet, medium); history-commenter (Haiku, low) |
-| `.claude/hooks/guard.py` | hard limits: subagents write only in `runs/`, no web, evidence lookup caps |
+| `.claude/hooks/guard.py` | hard limits: subagents write only in `runs/`, no web, evidence lookup caps (subagents return text; Python saves it) |
 | `pipeline/` | the Python checker, downloads, checks, report-number check |
 | `valuation/` | DCF, bridge, multiples, sensitivity (tested by hand-checked cases) |
 | `tests/` | known answers and planted errors; fixtures are synthetic (Synthetic Beverage Co.) |
